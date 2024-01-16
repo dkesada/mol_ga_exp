@@ -11,6 +11,7 @@ import joblib
 import numpy as np
 
 from .cached_function import CachedBatchFunction
+from mol_ga.mol_libraries import draw_grid
 
 # Logger with standard handler
 ga_logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ def run_ga_maximization(
     num_samples_per_generation: Optional[int] = None,
     logger: Optional[logging.Logger] = None,
     parallel: Optional[joblib.Parallel] = None,
+    plot_gen: boolean = False
 ) -> GAResults:
     """
     Runs a genetic algorithm to maximize `scoring_func`.
@@ -61,6 +63,7 @@ def run_ga_maximization(
         num_samples_per_generation: Number of samples to take from the population to create offspring.
         logger: Logger to use.
         parallel: Joblib parallel object to use (to generate offspring in parallel).
+        plot_gen: Whether to plot each generation with rdkit Draw
 
     Returns:
         GAResults object containing the population, scoring function, and information about each generation.
@@ -94,6 +97,11 @@ def run_ga_maximization(
 
     # Perform initial selection
     population = selection_func(population_size, population)
+
+    # Plot the initial population
+    if plot_gen:
+        _, plot_smiles = tuple(zip(*population))  # type: ignore[assignment]
+        draw_grid(plot_smiles)
 
     # ============================================================
     # 2: run GA iterations
@@ -132,6 +140,11 @@ def run_ga_maximization(
         # Select new population
         population = list(zip(population_scores, population_smiles))
         population = selection_func(population_size, population)
+
+        # Plot the new population
+        if plot_gen:
+            _, plot_smiles = tuple(zip(*population))  # type: ignore[assignment]
+            draw_grid(plot_smiles)
 
         # Log results of this generation
         population_scores, population_smiles = tuple(zip(*population))  # type: ignore[assignment]

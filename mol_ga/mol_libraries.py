@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Optional
 
 from rdkit import Chem
+from rdkit.Chem.Draw import MolsToGridImage
+from IPython.display import display
+
 
 # Basic SMILES that contain different functional groups
 BASIC_SMILES = [
@@ -39,3 +42,9 @@ def random_zinc(size: int, rng: Optional[random.Random] = None) -> list[str]:
     # Last check: ensure that all SMILES are canonical
     canon_smiles = [Chem.CanonSmiles(s) for s in chosen_smiles]
     return [s for s in canon_smiles if s]  # exclude None
+
+
+def draw_grid(smiles):
+    """Plot a list of SMILES using rdkit."""
+    smiles = list(map(Chem.MolFromSmiles, smiles))
+    display(MolsToGridImage(mols=smiles, molsPerRow=5))
