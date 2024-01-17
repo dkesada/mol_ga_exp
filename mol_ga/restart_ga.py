@@ -125,6 +125,7 @@ def run_rga_maximization(
         # Run GA
         max_vals = deque([-float('inf')] * conv_it, maxlen=conv_it)  # The queue of maximum values obtained
         convergence = False
+        generation = 0
         gen_info: list[dict[str, Any]] = []
 
         while generation < max_generations and not convergence:
@@ -184,6 +185,7 @@ def run_rga_maximization(
                 convergence = True
                 logger.info(f"Convergence criteria reached. No improvement of at least {conv_th} found in {conv_it} generations.")
 
+            generation += 1
             del population_scores, population_smiles
 
         # Log results of this restart
