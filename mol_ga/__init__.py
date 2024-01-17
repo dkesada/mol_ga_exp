@@ -1,7 +1,8 @@
 from .general_ga import run_ga_maximization
-from .preconfigured_gas import default_ga
+from .restart_ga import run_rga_maximization
+from .preconfigured_gas import default_ga, restart_ga
 
-__all__ = ["run_ga_maximization", "default_ga"]
+__all__ = ["run_ga_maximization", "run_ga_maximization", "default_ga", "restart_ga"]
 
 try:
     from importlib.metadata import PackageNotFoundError, version
