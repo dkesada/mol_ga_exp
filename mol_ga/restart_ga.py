@@ -190,11 +190,12 @@ def run_trga_maximization(
                 logger.info(f"Convergence criteria reached. No improvement of at least {conv_th} found in {conv_it} generations.")
 
             generation += 1
-            if tabu:
-                smile = max(population)[1]
-                tabu_func(smile)
             del population_scores, population_smiles
 
+        # Update the tabu list with the best molecule found in this restart
+        if tabu:
+            smile = max(population)[1]
+            tabu_func(smile)
         # Log results of this restart
         populations.append(population)
         scoring_func_evals.append(scoring_func.cache)
