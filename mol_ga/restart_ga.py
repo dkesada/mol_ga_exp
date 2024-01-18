@@ -28,9 +28,10 @@ class RGAResults:
     run_info: list[list[dict[str, Any]]]
 
 
-def run_rga_maximization(
+def run_trga_maximization(
     *,
     scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
+    tabu_func: Callable[[str], None],
     starting_population_smiles: set[str],
     sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]],
     offspring_gen_func: Callable[[list[str], int, random.Random, Optional[joblib.Parallel]], set[str]],
@@ -41,6 +42,7 @@ def run_rga_maximization(
     restarts: int = 4,
     conv_it: int = 5,
     conv_th: float = 0.3,
+    tabu: bool = True,
     rng: Optional[random.Random] = None,
     num_samples_per_generation: Optional[int] = None,
     logger: Optional[logging.Logger] = None,
@@ -48,11 +50,12 @@ def run_rga_maximization(
     plot_gen: boolean = False
 ) -> RGAResults:
     """
-    Runs a random restart genetic algorithm to maximize `scoring_func`.
+    Runs a tabu random restart genetic algorithm to maximize `scoring_func`.
 
     Args:
         scoring_func: Function that takes a list of SMILES and returns a list of scores.
             Convention: scoring function is being MAXIMIZED!
+        tabu_func: Function that adds a given SMILES to the tabu list of seen molecules
         starting_population_smiles: Set of SMILES to start the GA with.
         sampling_func: Function that takes a list of (score, smiles) tuples and returns a list of SMILES.
             This is used to sample SMILES from the population to create offspring.
@@ -67,6 +70,7 @@ def run_rga_maximization(
         restarts: Number of random restarts that the algorithm will perform
         conv_it: Number of iterations without improvement to consider convergence in the algorithm
         conv_th: Threshold value to consider improvement from one iteration to the next one
+        tabu: Whether or not to keep a tabu list
         rng: Random number generator.
         num_samples_per_generation: Number of samples to take from the population to create offspring.
         logger: Logger to use.
@@ -186,6 +190,9 @@ def run_rga_maximization(
                 logger.info(f"Convergence criteria reached. No improvement of at least {conv_th} found in {conv_it} generations.")
 
             generation += 1
+            if tabu:
+                smile = max(population)[1]
+                tabu_func(smile)
             del population_scores, population_smiles
 
         # Log results of this restart
