@@ -13,7 +13,6 @@ import numpy as np
 
 from .cached_function import CachedBatchFunction
 from mol_ga.mol_libraries import draw_grid
-from mol_ga.general_ga import GAResults
 
 
 # Logger with standard handler
@@ -26,6 +25,10 @@ class RGAResults:
     populations: list[list[tuple[float, str]]]
     scoring_func_evals: list[dict[str, float]]
     run_info: list[list[dict[str, Any]]]
+
+
+def random_sel(sel_size, pop, rng):
+    return rng.sample(pop, sel_size)
 
 
 def run_trga_maximization(
@@ -106,7 +109,7 @@ def run_trga_maximization(
     logger.debug(f"Initial population scoring done. Pop size={len(population_smiles)}, Max={_starting_max_score}")
     population = list(zip(population_scores, population_smiles))
     del population_scores, population_smiles, _starting_max_score
-    ini_full_pop = population
+    ini_full_pop = population.copy()
 
     populations: list[list[tuple[float, str]]] = []
     scoring_func_evals: list[dict[str, float]] = []
@@ -115,7 +118,8 @@ def run_trga_maximization(
     for i in range(restarts):
         logger.info(f"-------- Beginning restart number {i} --------")
         # Perform initial selection
-        population = selection_func(population_size, ini_full_pop)  # The random restarts are not so random anymore with a deterministic selection_func
+        #population = selection_func(population_size, ini_full_pop)  # The random restarts are not so random anymore with a deterministic selection_func
+        population = random_sel(population_size, ini_full_pop, rng)
 
         # Plot the initial population
         if plot_gen:

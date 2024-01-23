@@ -46,7 +46,7 @@ def restart_ga(
     conv_th=0.3,
     tabu=True,
     **kwargs,
-) -> GAResults:
+) -> RGAResults:
     """Genetic algorithm with default parameters for maximizing a scoring function."""
     return run_trga_maximization(
         starting_population_smiles=set(starting_population_smiles),
