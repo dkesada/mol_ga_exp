@@ -24,7 +24,7 @@ class GAController:
     this object. Afterwards, new modifications to the genetic algorithm can be made by extending this class.
     """
     def __init__(self, scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
-                 starting_population_smiles: set[str], max_generations: int, population_size: int, offspring_size: int,
+                 starting_population_smiles: list[str], max_generations: int, population_size: int, offspring_size: int,
                  sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]] = None,
                  offspring_gen_func: Callable[[list[str], int, random.Random, Optional[joblib.Parallel]], set[str]] = None,
                  selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]] = None,
@@ -61,7 +61,7 @@ class GAController:
             self.scoring_func = CachedBatchFunction(self.scoring_func)
         self.start_cache_size = len(self.scoring_func.cache)
         self.logger.debug(f"Starting cache made, has size {self.start_cache_size}")
-        self.starting_population_smiles = starting_population_smiles
+        self.starting_population_smiles = self.remove_duplicates(starting_population_smiles)
         self.population = None
         self.gen_info = None
         self.sampling_func = sampling_func or uniform_qualitle_sampling
@@ -75,8 +75,13 @@ class GAController:
         self.parallel = parallel
         self.plot_gen = plot_gen
 
+    @staticmethod
+    def remove_duplicates(smiles):
+        rep = set()
+        return [x for x in smiles if x not in rep and (rep.add(x) or True)]
+
     def score_ini_smiles(self):
-        population_smiles = list(self.starting_population_smiles)
+        population_smiles = self.starting_population_smiles
         population_scores = self.scoring_func.eval_batch(population_smiles)
         _starting_max_score = max(population_scores)
         self.logger.debug(f"Initial population scoring done. Pop size={len(population_smiles)}, Max={_starting_max_score}")

@@ -32,6 +32,15 @@ def default_ga(
     )
 
 
+# Function that takes a list and returns that same list in the same order but without duplicates. This is
+# needed because sets are unordered by default, so if I keep the original set implementation this will create
+# non-reproducible results when sampling the random initial sets from the restarts, because when you convert the set
+# back to a list and sample from it, elements can be in different positions
+def remove_duplicates(smiles):
+    rep = set()
+    return [x for x in smiles if x not in rep and (rep.add(x) or True)]
+
+
 def restart_ga(
     starting_population_smiles: list[str],
     scoring_function,
@@ -49,7 +58,7 @@ def restart_ga(
 ) -> RGAResults:
     """Genetic algorithm with default parameters for maximizing a scoring function."""
     return run_trga_maximization(
-        starting_population_smiles=set(starting_population_smiles),
+        starting_population_smiles=remove_duplicates(starting_population_smiles),
         scoring_func=scoring_function,
         tabu_func=tabu_function,
         offspring_gen_func=offspring_gen_func,

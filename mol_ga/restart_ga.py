@@ -35,7 +35,7 @@ def run_trga_maximization(
     *,
     scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
     tabu_func: Callable[[str], None],
-    starting_population_smiles: set[str],
+    starting_population_smiles: list[str],
     sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]],
     offspring_gen_func: Callable[[list[str], int, random.Random, Optional[joblib.Parallel]], set[str]],
     selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]],
@@ -103,7 +103,7 @@ def run_trga_maximization(
     # ============================================================
 
     # Score initial SMILES
-    population_smiles = list(starting_population_smiles)
+    population_smiles = starting_population_smiles
     population_scores = scoring_func.eval_batch(population_smiles)
     _starting_max_score = max(population_scores)
     logger.debug(f"Initial population scoring done. Pop size={len(population_smiles)}, Max={_starting_max_score}")
