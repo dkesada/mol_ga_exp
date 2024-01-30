@@ -15,6 +15,7 @@ from mol_ga.general_ga import GAResults
 from mol_ga.graph_ga.gen_candidates import graph_ga_blended_generation
 from mol_ga.sample_population import uniform_qualitle_sampling
 import heapq
+import streamlit as st
 
 
 class GAController:
@@ -30,7 +31,7 @@ class GAController:
                  selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]] = None,
                  rng: Optional[random.Random] = None,
                  num_samples_per_generation: Optional[int] = None, logger: Optional[logging.Logger] = None,
-                 parallel: Optional[joblib.Parallel] = None, plot_gen: boolean = False):
+                 parallel: Optional[joblib.Parallel] = None, plot_gen: boolean = False, st_container=None):
         """
         Creates a genetic algorithm controller to maximize `scoring_func`.
 
@@ -53,14 +54,17 @@ class GAController:
             logger: Logger to use.
             parallel: Joblib parallel object to use (to generate offspring in parallel).
             plot_gen: Whether to plot each generation with rdkit Draw
+            st_container: An optional external streamlit.container where to dump the text and plots. If not None,
+                st_container.image and st_container.write will be used
         """
         self.scoring_func = scoring_func
         self.logger = logger or logging.getLogger(__name__)
+        self.st_container = st_container
         # Create the cached scoring function
         if not isinstance(self.scoring_func, CachedBatchFunction):
             self.scoring_func = CachedBatchFunction(self.scoring_func)
         self.start_cache_size = len(self.scoring_func.cache)
-        self.logger.debug(f"Starting cache made, has size {self.start_cache_size}")
+        self.log_print(f"Starting cache made, has size {self.start_cache_size}", True)
         self.starting_population_smiles = self.remove_duplicates(starting_population_smiles)
         self.population = None
         self.gen_info = None
@@ -75,6 +79,14 @@ class GAController:
         self.parallel = parallel
         self.plot_gen = plot_gen
 
+    def log_print(self, msg, debug=False):
+        if debug:
+            self.logger.debug(msg)
+        else:
+            self.logger.info(msg)
+            if self.st_container:
+                self.st_container.write(msg)
+
     @staticmethod
     def remove_duplicates(smiles):
         rep = set()
@@ -84,7 +96,7 @@ class GAController:
         population_smiles = self.starting_population_smiles
         population_scores = self.scoring_func.eval_batch(population_smiles)
         _starting_max_score = max(population_scores)
-        self.logger.debug(f"Initial population scoring done. Pop size={len(population_smiles)}, Max={_starting_max_score}")
+        self.log_print(f"Initial population scoring done. Pop size={len(population_smiles)}, Max={_starting_max_score}", True)
         self.population = list(zip(population_scores, population_smiles))
         del population_scores, population_smiles, _starting_max_score
 
@@ -94,7 +106,7 @@ class GAController:
     def plot_population(self):
         if self.plot_gen:
             _, plot_smiles = tuple(zip(*self.population))  # type: ignore[assignment]
-            draw_grid(plot_smiles)
+            draw_grid(plot_smiles, self.st_container)
 
     def select_new_population(self, population_scores, population_smiles):
         self.population = list(zip(population_scores, population_smiles))
@@ -112,14 +124,14 @@ class GAController:
 
         # Add to population, ensuring uniqueness
         population_smiles = list(set(population_smiles) | offspring)  # type: ignore[misc]  # thinks var deleted
-        self.logger.debug(f"\t{len(offspring)} created")
-        self.logger.debug(f"\tNew population size = {len(population_smiles)}")
+        self.log_print(f"\t{len(offspring)} created", True)
+        self.log_print(f"\tNew population size = {len(population_smiles)}", True)
         del offspring
 
         # Score new population
-        self.logger.debug("\tCalling scoring function...")
+        self.log_print("\tCalling scoring function...", True)
         population_scores = self.scoring_func.eval_batch(population_smiles)
-        self.logger.debug(f"\tScoring done, best score now {max(population_scores)}.")
+        self.log_print(f"\tScoring done, best score now {max(population_scores)}.", True)
 
         # Select new population
         self.select_new_population(population_scores, population_smiles)
@@ -142,7 +154,7 @@ class GAController:
             size=len(population_scores),
             num_func_eval=len(self.scoring_func.cache) - self.start_cache_size,
         )
-        self.logger.info("End of generation. Stats:\n" + pformat(gen_stats_dict))
+        self.log_print("End of generation. Stats:\n" + pformat(gen_stats_dict))
         self.gen_info.append(gen_stats_dict)
 
     def run(self):
@@ -155,7 +167,7 @@ class GAController:
         Returns:
             GAResults object containing the population, scoring function, and information about each generation.
         """
-        self.logger.info("Starting GA maximization...")
+        self.log_print("Starting GA maximization...")
 
         # ============================================================
         # 1: prepare initial population
@@ -177,12 +189,12 @@ class GAController:
         # Run GA
         self.gen_info: list[dict[str, Any]] = []
         for generation in range(self.max_generations):
-            self.logger.info(f"Start generation {generation}")
+            self.log_print(f"Start generation {generation}")
             self.perform_iteration()
 
         # ============================================================
         # 3: Create return object
         # ============================================================
-        self.logger.info("End of GA. Returning results.")
+        self.log_print("End of GA. Returning results.")
 
         return GAResults(population=self.population, scoring_func_evals=self.scoring_func.cache, gen_info=self.gen_info)

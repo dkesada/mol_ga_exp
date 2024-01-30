@@ -20,7 +20,7 @@ class TRGAController(GAController):
     """
     def __init__(self, scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
                  tabu_func: Callable[[str], None],
-                 starting_population_smiles: set[str],
+                 starting_population_smiles: list[str],
                  max_generations: int, population_size: int, offspring_size: int, restarts: int = 4,
                  conv_it: int = 5, conv_th: float = 0.3, tabu: bool = True, ini_rand: bool = False,
                  sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]] = None,
@@ -28,7 +28,7 @@ class TRGAController(GAController):
                  selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]] = None,
                  rng: Optional[random.Random] = None, num_samples_per_generation: Optional[int] = None,
                  logger: Optional[logging.Logger] = None, parallel: Optional[joblib.Parallel] = None,
-                 plot_gen: boolean = False):
+                 plot_gen: boolean = False, st_container=None):
         """
         Creates a tabu random restart genetic algorithm controller to maximize `scoring_func`.
 
@@ -63,7 +63,7 @@ class TRGAController(GAController):
                               selection_func=selection_func, max_generations=max_generations,
                               population_size=population_size, offspring_size=offspring_size, rng=rng,
                               num_samples_per_generation=num_samples_per_generation, logger=logger,
-                              parallel=parallel, plot_gen=plot_gen)
+                              parallel=parallel, plot_gen=plot_gen, st_container=st_container)
         self.tabu_func = tabu_func
         self.restarts = restarts
         self.conv_it = conv_it
@@ -91,9 +91,9 @@ class TRGAController(GAController):
             GAResults object containing the population, scoring function, and information about each generation.
         """
         if self.tabu:
-            self.logger.info("Starting TRGA maximization...")
+            self.log_print("Starting TRGA maximization...")
         else:
-            self.logger.info("Starting RGA maximization...")
+            self.log_print("Starting RGA maximization...")
 
         # ============================================================
         # 1: prepare initial population
@@ -109,7 +109,7 @@ class TRGAController(GAController):
 
         # Begin the different random restarts
         for i in range(self.restarts):
-            self.logger.info(f"-------- Beginning restart number {i} --------")
+            self.log_print(f"-------- Beginning restart number {i} --------")
 
             # Perform initial population selection
             self.ini_population_sel()
@@ -128,14 +128,14 @@ class TRGAController(GAController):
             self.gen_info: list[dict[str, Any]] = []
 
             while generation < self.max_generations and not convergence:
-                self.logger.info(f"Start generation {generation}")
+                self.log_print(f"Start generation {generation}")
                 self.perform_iteration()
 
                 # Check convergence criteria
                 max_vals.append(self.gen_info[-1]['max'])  # Add the maximum value to the queue
                 if max_vals[-1] - max_vals[0] < self.conv_th:  # Check if we haven't improved conv_th in conv_it generations
                     convergence = True
-                    self.logger.info(f"Convergence criteria reached. No improvement of at least {self.conv_th} found in {self.conv_it} generations.")
+                    self.log_print(f"Convergence criteria reached. No improvement of at least {self.conv_th} found in {self.conv_it} generations.")
 
                 generation += 1
 
@@ -153,8 +153,8 @@ class TRGAController(GAController):
         # 3: Create return object
         # ============================================================
         if self.tabu:
-            self.logger.info("End of TRGA. Returning results.")
+            self.log_print("End of TRGA. Returning results.")
         else:
-            self.logger.info("End of RGA. Returning results.")
+            self.log_print("End of RGA. Returning results.")
 
         return RGAResults(populations=populations, scoring_func_evals=scoring_func_evals, run_info=run_info)

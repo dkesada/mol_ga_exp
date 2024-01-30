@@ -7,6 +7,7 @@ from typing import Optional
 from rdkit import Chem
 from rdkit.Chem.Draw import MolsToGridImage
 from IPython.display import display
+import streamlit as st
 
 
 # Basic SMILES that contain different functional groups
@@ -44,7 +45,11 @@ def random_zinc(size: int, rng: Optional[random.Random] = None) -> list[str]:
     return [s for s in canon_smiles if s]  # exclude None
 
 
-def draw_grid(smiles):
+def draw_grid(smiles, container=None):
     """Plot a list of SMILES using rdkit."""
     smiles = list(map(Chem.MolFromSmiles, smiles))
-    display(MolsToGridImage(mols=smiles, molsPerRow=5))
+    img = MolsToGridImage(mols=smiles, molsPerRow=5)
+    if container is not None:
+        container.image(img)
+    else:
+        display(img)
