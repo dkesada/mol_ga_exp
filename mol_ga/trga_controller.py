@@ -125,11 +125,14 @@ class TRGAController(GAController):
             max_vals = deque([-float('inf')] * self.conv_it, maxlen=self.conv_it)  # The queue of maximum values obtained
             convergence = False
             generation = 0
+            gen_path = list()
+            gen_path.append(self.population)
             self.gen_info: list[dict[str, Any]] = []
 
             while generation < self.max_generations and not convergence:
                 self.log_print(f"Start generation {generation}")
                 self.perform_iteration()
+                gen_path.append(self.population)
 
                 # Check convergence criteria
                 max_vals.append(self.gen_info[-1]['max'])  # Add the maximum value to the queue
@@ -145,7 +148,7 @@ class TRGAController(GAController):
                 self.tabu_func(smile)
 
             # Log results of this restart
-            populations.append(self.population)
+            populations.append(gen_path)
             scoring_func_evals.append(self.scoring_func.cache)
             run_info.append(self.gen_info)
 
