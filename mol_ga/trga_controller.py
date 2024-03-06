@@ -10,8 +10,23 @@ from collections import deque
 import joblib
 
 from .cached_function import CachedBatchFunction
-from mol_ga.restart_ga import RGAResults
 from mol_ga.ga_controller import GAController
+
+
+@dataclass
+class RGAResults:
+    """
+    Results from a random restart GA run.
+    populations: list[list[list[tuple[float, str]]]], a list of lists of lists with each random restart, each
+        generation and each population of particles
+    scoring_func_evals: dict[str, float]], a dictionary with all the molecules evaluated and their scores
+    run_info: list[list[dict[str, Any]]], a list of lists with information about each generation of particles in each
+        random restart. It shows the maximum, average, median, minimum and standard deviation of the fitness of the
+        population, the size of the population and the number of evaluations of the fitness function.
+    """
+    populations: list[list[list[tuple[float, str]]]]
+    scoring_func_evals: dict[str, float]
+    run_info: list[list[dict[str, Any]]]
 
 
 class TRGAController(GAController):
@@ -21,7 +36,7 @@ class TRGAController(GAController):
     def __init__(self, scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
                  tabu_func: Callable[[str], None],
                  starting_population_smiles: list[str],
-                 max_generations: int, population_size: int, offspring_size: int, restarts: int = 4,
+                 max_generations: int = 50, population_size: int = 10, offspring_size: int = 10, restarts: int = 5,
                  conv_it: int = 5, conv_th: float = 0.3, tabu: bool = True, ini_rand: bool = False,
                  sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]] = None,
                  offspring_gen_func: Callable[[list[str], int, random.Random, Optional[joblib.Parallel]], set[str]] = None,
@@ -103,8 +118,7 @@ class TRGAController(GAController):
         self.score_ini_smiles()
         self.ini_full_population = self.population.copy()
 
-        populations: list[list[tuple[float, str]]] = []
-        scoring_func_evals: list[dict[str, float]] = []
+        populations: list[list[list[tuple[float, str]]]] = []
         run_info: list[list[dict[str, Any]]] = []
 
         # Begin the different random restarts
@@ -149,7 +163,6 @@ class TRGAController(GAController):
 
             # Log results of this restart
             populations.append(gen_path)
-            scoring_func_evals.append(self.scoring_func.cache)
             run_info.append(self.gen_info)
 
         # ============================================================
@@ -160,4 +173,4 @@ class TRGAController(GAController):
         else:
             self.log_print("End of RGA. Returning results.")
 
-        return RGAResults(populations=populations, scoring_func_evals=scoring_func_evals, run_info=run_info)
+        return RGAResults(populations=populations, scoring_func_evals=self.scoring_func.cache, run_info=run_info)

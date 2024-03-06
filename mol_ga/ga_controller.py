@@ -11,11 +11,26 @@ import numpy as np
 
 from .cached_function import CachedBatchFunction
 from mol_ga.mol_libraries import draw_grid
-from mol_ga.general_ga import GAResults
 from mol_ga.graph_ga.gen_candidates import graph_ga_blended_generation
 from mol_ga.sample_population import uniform_qualitle_sampling
 import heapq
 import streamlit as st
+
+
+@dataclass
+class GAResults:
+    """
+    Results from a GA run.
+    populations: list[tuple[float, str]], a list of lists with all the generations and the particles in each population
+    scoring_func_evals: dict[str, float], a dictionary with all the molecules evaluated and their scores
+    gen_info: list[dict[str, Any]], a list with information about each generation of particles. It shows the maximum,
+        average, median, minimum and standard deviation of the fitness of the population, the size of the population
+        and the number of evaluations of the fitness function.
+    """
+
+    populations: list[list[tuple[float, str]]]
+    scoring_func_evals: dict[str, float]
+    gen_info: list[dict[str, Any]]
 
 
 class GAController:
@@ -25,7 +40,7 @@ class GAController:
     this object. Afterwards, new modifications to the genetic algorithm can be made by extending this class.
     """
     def __init__(self, scoring_func: Union[Callable[[list[str]], list[float]], CachedBatchFunction],
-                 starting_population_smiles: list[str], max_generations: int, population_size: int, offspring_size: int,
+                 starting_population_smiles: list[str], max_generations: int = 50, population_size: int = 10, offspring_size: int = 10,
                  sampling_func: Callable[[list[tuple[float, str]], int, random.Random], list[str]] = None,
                  offspring_gen_func: Callable[[list[str], int, random.Random, Optional[joblib.Parallel]], set[str]] = None,
                  selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]] = None,
@@ -187,14 +202,17 @@ class GAController:
         # ============================================================
 
         # Run GA
+        gen_path = list()
+        gen_path.append(self.population)
         self.gen_info: list[dict[str, Any]] = []
         for generation in range(self.max_generations):
             self.log_print(f"Start generation {generation}")
             self.perform_iteration()
+            gen_path.append(self.population)
 
         # ============================================================
         # 3: Create return object
         # ============================================================
         self.log_print("End of GA. Returning results.")
 
-        return GAResults(population=self.population, scoring_func_evals=self.scoring_func.cache, gen_info=self.gen_info)
+        return GAResults(populations=gen_path, scoring_func_evals=self.scoring_func.cache, gen_info=self.gen_info)

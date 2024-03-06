@@ -14,7 +14,7 @@ keywords = ["genetic algorithm", "molecule", "chemistry"]
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
-dynamic = ["version"]  # version is set from git tags
+version =  "1.1.58"
 
 dependencies = [
   "numpy",
