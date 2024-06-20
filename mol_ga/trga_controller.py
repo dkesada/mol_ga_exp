@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 import random
-from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union, Dict, List, Tuple
 from collections import deque
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import joblib
 
@@ -13,7 +12,6 @@ from .cached_function import CachedBatchFunction
 from mol_ga.ga_controller import GAController, GenInfo
 
 
-@dataclass
 class RGAResults(BaseModel):
     """
     Results from a random restart GA run.
@@ -24,6 +22,7 @@ class RGAResults(BaseModel):
         random restart. It shows the maximum, average, median, minimum and standard deviation of the fitness of the
         population, the size of the population and the number of evaluations of the fitness function.
     """
+    type: str = Field(default='RGAResultsData')
     populations: List[List[List[Tuple[float, str]]]]
     scoring_func_evals: Dict[str, float]
     run_info: List[List[GenInfo]]
@@ -98,6 +97,21 @@ class TRGAController(GAController):
             self.population = self.random_sel(self.population_size, self.ini_full_population, self.rng)
         else:
             self.population = self.selection_func(self.population_size, self.ini_full_population)  # Deterministic
+
+    def get_params(self):
+        res = vars(self)
+        del (res["scoring_func"])
+        del (res["logger"])
+        del (res["population"])
+        del (res["gen_info"])
+        del (res["sampling_func"])
+        del (res["offspring_gen_func"])
+        del (res["selection_func"])
+        del (res["rng"])
+        del (res["parallel"])
+        del (res["tabu_func"])
+
+        return res
 
     def run(self):
         """
@@ -175,4 +189,4 @@ class TRGAController(GAController):
             self.log_print("End of RGA. Returning results.")
 
         return RGAResults(populations=populations, scoring_func_evals=self.scoring_func.cache,
-                          run_info=run_info, params=vars(self))
+                          run_info=run_info, params=self.get_params())

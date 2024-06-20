@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from dataclasses import dataclass
 from pprint import pformat
-from typing import Any, Callable, Optional, Union
 
 import joblib
 import numpy as np
@@ -14,11 +12,10 @@ from mol_ga.mol_libraries import draw_grid
 from mol_ga.graph_ga.gen_candidates import graph_ga_blended_generation
 from mol_ga.sample_population import uniform_qualitle_sampling
 import heapq
-from pydantic import BaseModel
-from typing import Dict, List, Tuple
+from pydantic import BaseModel, Field
+from typing import Any, Callable, Optional, Union, Dict, List, Tuple
 
 
-@dataclass
 class GenInfo(BaseModel):
     max: float
     avg: float
@@ -29,7 +26,6 @@ class GenInfo(BaseModel):
     num_func_eval: int
 
 
-@dataclass
 class GAResults(BaseModel):
     """
     Results from a GA run.
@@ -39,7 +35,7 @@ class GAResults(BaseModel):
         average, median, minimum and standard deviation of the fitness of the population, the size of the population
         and the number of evaluations of the fitness function.
     """
-
+    type: str = Field(default='GAResultsData')
     populations: List[List[Tuple[float, str]]]
     scoring_func_evals: Dict[str, float]
     gen_info: List[GenInfo]
@@ -185,6 +181,20 @@ class GAController:
         self.log_print("End of generation. Stats:\n" + pformat(gen_stats_dict))
         self.gen_info.append(gen_stats_dict)
 
+    def get_params(self):
+        res = vars(self)
+        del (res["scoring_func"])
+        del (res["logger"])
+        del (res["population"])
+        del (res["gen_info"])
+        del (res["sampling_func"])
+        del (res["offspring_gen_func"])
+        del (res["selection_func"])
+        del (res["rng"])
+        del (res["parallel"])
+
+        return res
+
     def run(self):
         """
         Runs the genetic algorithm maximization. The idea is to make this run function as modulated as possible in
@@ -229,4 +239,4 @@ class GAController:
         self.log_print("End of GA. Returning results.")
 
         return GAResults(populations=gen_path, scoring_func_evals=self.scoring_func.cache,
-                         gen_info=self.gen_info, params=vars(self))
+                         gen_info=self.gen_info, params=self.get_params())
