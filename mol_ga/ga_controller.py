@@ -14,23 +14,36 @@ from mol_ga.mol_libraries import draw_grid
 from mol_ga.graph_ga.gen_candidates import graph_ga_blended_generation
 from mol_ga.sample_population import uniform_qualitle_sampling
 import heapq
-import json
+from pydantic import BaseModel
+from typing import Dict, List, Tuple
 
 
 @dataclass
-class GAResults:
+class GenInfo(BaseModel):
+    max: float
+    avg: float
+    median: float
+    min: float
+    std: float
+    size: int
+    num_func_eval: int
+
+
+@dataclass
+class GAResults(BaseModel):
     """
     Results from a GA run.
     populations: list[tuple[float, str]], a list of lists with all the generations and the particles in each population
     scoring_func_evals: dict[str, float], a dictionary with all the molecules evaluated and their scores
-    gen_info: list[dict[str, Any]], a list with information about each generation of particles. It shows the maximum,
+    gen_info: list[GenInfo], a list with information about each generation of particles. It shows the maximum,
         average, median, minimum and standard deviation of the fitness of the population, the size of the population
         and the number of evaluations of the fitness function.
     """
 
-    populations: list[list[tuple[float, str]]]
-    scoring_func_evals: dict[str, float]
-    gen_info: list[dict[str, Any]]
+    populations: List[List[Tuple[float, str]]]
+    scoring_func_evals: Dict[str, float]
+    gen_info: List[GenInfo]
+    params: Dict[str, Any]
 
 
 class GAController:
@@ -160,7 +173,7 @@ class GAController:
 
     def log_gen_results(self):
         population_scores, population_smiles = tuple(zip(*self.population))  # type: ignore[assignment]
-        gen_stats_dict = dict(
+        gen_stats_dict = GenInfo(
             max=np.max(population_scores),
             avg=np.mean(population_scores),
             median=np.median(population_scores),
@@ -204,7 +217,7 @@ class GAController:
         # Run GA
         gen_path = list()
         gen_path.append(self.population)
-        self.gen_info: list[dict[str, Any]] = []
+        self.gen_info: List[GenInfo] = []
         for generation in range(self.max_generations):
             self.log_print(f"Start generation {generation}")
             self.perform_iteration()
@@ -215,4 +228,5 @@ class GAController:
         # ============================================================
         self.log_print("End of GA. Returning results.")
 
-        return GAResults(populations=gen_path, scoring_func_evals=self.scoring_func.cache, gen_info=self.gen_info)
+        return GAResults(populations=gen_path, scoring_func_evals=self.scoring_func.cache,
+                         gen_info=self.gen_info, params=vars(self))

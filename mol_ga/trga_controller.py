@@ -3,18 +3,18 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass
-from pprint import pformat
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, Dict, List, Tuple
 from collections import deque
+from pydantic import BaseModel
 
 import joblib
 
 from .cached_function import CachedBatchFunction
-from mol_ga.ga_controller import GAController
+from mol_ga.ga_controller import GAController, GenInfo
 
 
 @dataclass
-class RGAResults:
+class RGAResults(BaseModel):
     """
     Results from a random restart GA run.
     populations: list[list[list[tuple[float, str]]]], a list of lists of lists with each random restart, each
@@ -24,9 +24,10 @@ class RGAResults:
         random restart. It shows the maximum, average, median, minimum and standard deviation of the fitness of the
         population, the size of the population and the number of evaluations of the fitness function.
     """
-    populations: list[list[list[tuple[float, str]]]]
-    scoring_func_evals: dict[str, float]
-    run_info: list[list[dict[str, Any]]]
+    populations: List[List[List[Tuple[float, str]]]]
+    scoring_func_evals: Dict[str, float]
+    run_info: List[List[GenInfo]]
+    params: Dict[str, Any]
 
 
 class TRGAController(GAController):
@@ -118,8 +119,8 @@ class TRGAController(GAController):
         self.score_ini_smiles()
         self.ini_full_population = self.population.copy()
 
-        populations: list[list[list[tuple[float, str]]]] = []
-        run_info: list[list[dict[str, Any]]] = []
+        populations: List[List[List[Tuple[float, str]]]] = []
+        run_info: List[List[GenInfo]] = []
 
         # Begin the different random restarts
         for i in range(self.restarts):
@@ -141,7 +142,7 @@ class TRGAController(GAController):
             generation = 0
             gen_path = list()
             gen_path.append(self.population)
-            self.gen_info: list[dict[str, Any]] = []
+            self.gen_info: List[GenInfo] = []
 
             while generation < self.max_generations and not convergence:
                 self.log_print(f"Start generation {generation}")
@@ -149,7 +150,7 @@ class TRGAController(GAController):
                 gen_path.append(self.population)
 
                 # Check convergence criteria
-                max_vals.append(self.gen_info[-1]['max'])  # Add the maximum value to the queue
+                max_vals.append(self.gen_info[-1].max)  # Add the maximum value to the queue
                 if max_vals[-1] - max_vals[0] < self.conv_th:  # Check if we haven't improved conv_th in conv_it generations
                     convergence = True
                     self.log_print(f"Convergence criteria reached. No improvement of at least {self.conv_th} found in {self.conv_it} generations.")
@@ -173,4 +174,5 @@ class TRGAController(GAController):
         else:
             self.log_print("End of RGA. Returning results.")
 
-        return RGAResults(populations=populations, scoring_func_evals=self.scoring_func.cache, run_info=run_info)
+        return RGAResults(populations=populations, scoring_func_evals=self.scoring_func.cache,
+                          run_info=run_info, params=vars(self))
