@@ -43,7 +43,7 @@ class TRGAController(GAController):
                  selection_func: Callable[[int, list[tuple[float, str]]], list[tuple[float, str]]] = None,
                  rng: Optional[random.Random] = None, num_samples_per_generation: Optional[int] = None,
                  logger: Optional[logging.Logger] = None, parallel: Optional[joblib.Parallel] = None,
-                 plot_gen: boolean = False, st_container=None):
+                 plot_gen: bool = False, st_container=None):
         """
         Creates a tabu random restart genetic algorithm controller to maximize `scoring_func`.
 

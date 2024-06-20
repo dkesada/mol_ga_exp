@@ -6,8 +6,6 @@ from typing import Optional
 
 from rdkit import Chem
 from rdkit.Chem.Draw import MolsToGridImage
-from IPython.display import display
-import streamlit as st
 
 
 # Basic SMILES that contain different functional groups
@@ -52,4 +50,8 @@ def draw_grid(smiles, container=None):
     if container is not None:
         container.image(img)
     else:
-        display(img)
+        try:
+            from IPython.display import display
+            display(img)
+        except ModuleNotFoundError as e:
+            print(f"No display found, IPython not installed: {e}")
